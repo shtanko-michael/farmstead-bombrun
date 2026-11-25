@@ -1,0 +1,22 @@
+# See https://stonecutter.kikugie.dev/wiki/config/properties#centralized-properties
+mod.id = "farmstead_bombrun"
+mod.name = "Bomb Run"
+# jar base name: farmstead-bombrun-<loader>-<version>+<mc>.jar
+mod.file = "farmstead-bombrun"
+# Links shown in the mod list and used by the listing (slug not claimed yet, PLAN.md header)
+mod.homepage = "https://modrinth.com/mod/bomb-run"
+mod.sources = "https://github.com/shtanko-michael/farmstead-bombrun"
+mod.issues = "https://github.com/shtanko-michael/farmstead-bombrun/issues"
+mod.group = "online.farmsteadminecraft"
+mod.version = "0.1.0-alpha.1"
+
+
+["1.21.1"]
+# List of releases to be marked compatible on Modrinth/Curseforge
+mod.mc_releases = ["1.21", "1.21.1"]
+
+
+[neoforge."1.21.1"]
+# Mod compatibility range in neoforge.mods.toml
+mod.mc_compat = "[1.21, 1.21.1]"
+deps.neo_loader = "21.1.265"

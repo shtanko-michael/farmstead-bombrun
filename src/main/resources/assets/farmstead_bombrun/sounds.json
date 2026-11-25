@@ -1,0 +1,20 @@
+{
+  "raid.siren": {
+    "subtitle": "subtitles.farmstead_bombrun.raid.siren",
+    "sounds": [{"name": "minecraft:event.raid.horn", "type": "event"}]
+  },
+  "raid.engine": {
+    "subtitle": "subtitles.farmstead_bombrun.raid.engine",
+    "sounds": [{"name": "minecraft:entity.bee.loop", "type": "event"}]
+  },
+  "raid.whistle": {
+    "subtitle": "subtitles.farmstead_bombrun.raid.whistle",
+    "sounds": [{"name": "minecraft:item.elytra.flying", "type": "event"}]
+  },
+  "remote.confirm": {
+    "sounds": [{"name": "minecraft:block.stone_button.click_on", "type": "event"}]
+  },
+  "remote.deny": {
+    "sounds": [{"name": "minecraft:block.note_block.bass", "type": "event"}]
+  }
+}
