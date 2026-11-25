@@ -15,4 +15,7 @@ All notable changes to Bomb Run. Versions follow [Semantic Versioning](https://s
   distance and camera shake. Own engine, whistle, siren and remote sounds.
 - Undo puts back sand over caves and water exactly as it was.
 - Textured fire: each blast is a cluster of animated flame puffs (white-hot core → orange flame → embers → smoke).
+- A raid ends only when its bombs have gone off (at most a minute after the planes left; leftovers are removed),
+  and a bomb from a finished raid never comes back with its chunk — before, bombs lying in unloaded chunks went off
+  during `/bombrun undo` and wrecked the restored area.
 - Contrails: two white trails behind every plane that widen, sink and fade (`render.contrails`, `render.contrailSeconds`).

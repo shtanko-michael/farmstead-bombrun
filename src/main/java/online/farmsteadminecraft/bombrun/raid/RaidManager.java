@@ -61,6 +61,8 @@ import online.farmsteadminecraft.bombrun.undo.Restorer;
  */
 public final class RaidManager {
     private static RaidManager instance;
+    /** How long a raid waits after its planes left for its last bombs to go off, ticks. */
+    private static final int LINGER_TICKS = 1200;
 
     private final MinecraftServer server;
     private final RaidSavedData data;
@@ -214,8 +216,16 @@ public final class RaidManager {
         return bombs.computeIfAbsent(level.dimension(), k -> new Bombs());
     }
 
-    public void entityJoined(Entity entity, ServerLevel level) {
-        if (entity instanceof PrimedTnt tnt && Bombs.isBomb(tnt)) bombs(level).track(tnt);
+    /**
+     * An entity entered the level. Bombs of a raid that is in the air are tracked; a bomb whose raid is over (it lay
+     * in a chunk that unloaded, and the chunk came back, for instance during {@code /bombrun undo}) must not go off
+     * in a restored town: returns true, and the loader cancels its joining.
+     */
+    public boolean entityJoined(Entity entity, ServerLevel level) {
+        if (!(entity instanceof PrimedTnt tnt) || !Bombs.isBomb(tnt)) return false;
+        if (!raids.containsKey(Bombs.raidOf(tnt))) return true;
+        bombs(level).track(tnt);
+        return false;
     }
 
     /** Before the level ticks its entities. */
@@ -242,7 +252,9 @@ public final class RaidManager {
                 Bombs.drop(level, plan.drop(raid.held.poll()), plan.payload, raid.fuseTicks, raid.id, owner);
             }
             if (!raid.held.isEmpty()) levelBombs.budget().deferredDrop();
-            if (raid.nextDrop >= plan.drops() && raid.held.isEmpty() && t > plan.duration()) {
+            // over when every bomb is dropped and gone (or a minute after the planes left, whatever still lies there)
+            if (raid.nextDrop >= plan.drops() && raid.held.isEmpty() && t > plan.duration()
+                && (levelBombs.liveFor(raid.id) == 0 || t > plan.duration() + LINGER_TICKS)) {
                 finish(level, raid, false);
                 it.remove();
                 changed = true;
@@ -306,6 +318,8 @@ public final class RaidManager {
     }
 
     private void finish(ServerLevel level, Raid raid, boolean cancelled) {
+        int left = bombs(level).discardRaid(raid.id);
+        if (left > 0) BombRun.LOGGER.info("[Bomb Run] raid #{}: {} bombs that had not gone off removed", raid.id, left);
         releaseTickets(level, raid);
         Net.get().toDimension(level, new RaidEndPayload(raid.id, cancelled));
         BombRun.LOGGER.info("[Bomb Run] raid #{} {}", raid.id, cancelled ? "cancelled" : "finished");
