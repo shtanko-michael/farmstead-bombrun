@@ -45,6 +45,14 @@ neoForge {
             providers.gradleProperty("clientSize").orNull?.split("x")?.let { programArguments.addAll("--width", it[0], "--height", it[1]) }
         }
 
+        // `./gradlew runDemo`: makes a fresh world, calls one raid in view, saves screenshots and quits (CI pictures)
+        register("demo") {
+            gameDirectory = rootProject.file("run/${sc.current.project}/demo")
+            client()
+            systemProperty("farmstead_bombrun.demo", "true")
+            programArguments.addAll("--width", "1280", "--height", "720", "--username", "BombRunDemo")
+        }
+
         register("server") {
             gameDirectory = rootProject.file("run/${sc.current.project}/server")
             server()

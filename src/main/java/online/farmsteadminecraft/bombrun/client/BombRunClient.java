@@ -2,6 +2,7 @@ package online.farmsteadminecraft.bombrun.client;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.phys.Vec3;
+import online.farmsteadminecraft.bombrun.client.demo.DemoDirector;
 import online.farmsteadminecraft.bombrun.client.raid.ClientRaids;
 import online.farmsteadminecraft.bombrun.client.remote.TargetMarker;
 import online.farmsteadminecraft.bombrun.client.remote.TargetingState;
@@ -21,6 +22,7 @@ public final class BombRunClient {
     public static void tick(Minecraft mc) {
         TargetingState.tick(mc);
         ClientRaids.tick(mc);
+        DemoDirector.tick(mc);
     }
 
     /** Called after entities are drawn, with an identity pose and the camera-rotated model-view on the GPU. */
