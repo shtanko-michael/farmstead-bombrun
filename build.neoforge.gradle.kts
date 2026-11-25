@@ -120,8 +120,10 @@ tasks {
 
     // Includes the license file in the built mod
     withType<Jar> {
+        // a local copy: a lambda that reads the script's own `modId` cannot go into the configuration cache
+        val licenseName = "LICENSE_$modId"
         inputs.property("mod_id", modId)
-        from("../../LICENSE") { rename { "${it}_$modId" } }
+        from("../../LICENSE") { rename { licenseName } }
     }
 
     register<Copy>("buildAndCollect") {
