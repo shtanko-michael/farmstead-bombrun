@@ -99,8 +99,8 @@ public final class DemoDirector {
                     raid = ClientRaids.all().iterator().next();
                     FlightPlan plan = raid.plan;
                     int first = plan.firstDropTick(), last = plan.lastDropTick();
-                    shots = new double[] {first - 50, first + 12, first + 40, last + 100};
-                    names = new String[] {"2-approach", "3-bombs-away", "4-impact", "5-aftermath"};
+                    shots = new double[] {first - 50, first + 12, first + 40, last + 30, last + 100};
+                    names = new String[] {"2-approach", "3-bombs-away", "4-impact", "4b-fire", "5-aftermath"};
                     nextShot = 0;
                     BombRun.LOGGER.info("[demo] raid {} first drop {} last drop {} duration {}", raid.id, first, last, plan.duration());
                     stage = 4;
