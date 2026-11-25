@@ -1,0 +1,11 @@
+name: Idea
+description: A new plane, payload, pattern, setting or anything else
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea
+      description: What should Bomb Run do, and why would it be nice?
+    validations:
+      required: true
