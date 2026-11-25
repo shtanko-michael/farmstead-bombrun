@@ -16,6 +16,15 @@ public final class BombRunClientConfig {
     public static final BoolValue SIREN = FILE.bool("sound", "siren", true)
         .comment("Siren at the target during the countdown.");
 
+    public static final DoubleValue FX_SHAKE = FILE.number("fx", "cameraShake", 1.0, 0.0, 3.0)
+        .comment("How hard blasts shake the camera; 0 turns it off.");
+    public static final IntValue FX_PER_TICK = FILE.integer("fx", "maxBlastsPerTick", 24, 1, 512)
+        .comment("Blasts per tick that get a fireball, flash, embers and smoke; over it an even sample does.");
+    public static final IntValue FX_SOUNDS = FILE.integer("fx", "maxBoomsPerTick", 6, 0, 64)
+        .comment("Distant booms started per tick (near blasts are vanilla's own sound).");
+    public static final BoolValue FX_SMOKE = FILE.bool("fx", "smokeColumns", true)
+        .comment("Columns of smoke that hang over the ruins.");
+
     public static final StringValue MARKER_COLOR = FILE.string("marker", "color", "#FF3B30")
         .comment("Colour of the target ring, #RRGGBB.");
     public static final DoubleValue MARKER_OPACITY = FILE.number("marker", "opacity", 0.7, 0.05, 1.0)

@@ -7,6 +7,8 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.event.ViewportEvent;
+import online.farmsteadminecraft.bombrun.client.fx.BlastFx;
 import net.neoforged.neoforge.common.NeoForge;
 import online.farmsteadminecraft.bombrun.client.BombRunClient;
 import online.farmsteadminecraft.bombrun.client.remote.TargetingState;
@@ -29,6 +31,13 @@ final class NeoForgeClientHooks {
                 e.setSwingHand(false);
                 e.setCanceled(true);
             }
+        });
+        NeoForge.EVENT_BUS.addListener((ViewportEvent.ComputeCameraAngles e) -> {
+            float[] o = BlastFx.cameraOffsets((float) e.getPartialTick());
+            if (o == null) return;
+            e.setYaw(e.getYaw() + o[0]);
+            e.setPitch(e.getPitch() + o[1]);
+            e.setRoll(e.getRoll() + o[2]);
         });
         NeoForge.EVENT_BUS.addListener((RenderLevelStageEvent e) -> {
             // after entities the global model-view matrix carries the camera rotation, so the event's

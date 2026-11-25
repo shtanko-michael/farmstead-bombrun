@@ -32,7 +32,8 @@ public final class TargetMarker {
         ClientLevel level = mc.level;
         if (target == null || level == null) return;
         double radius = TargetingState.radius();
-        int rgb = BombRunClientConfig.markerRgb();
+        // out of the server's range: a dim grey ring, the raid would be refused
+        int rgb = TargetingState.inRange(mc) ? BombRunClientConfig.markerRgb() : 0x7A7A7A;
         int r = (rgb >> 16) & 0xFF, g = (rgb >> 8) & 0xFF, b = rgb & 0xFF;
         float pulse = 0.8f + 0.2f * Mth.sin((level.getGameTime() + partial) * 0.3f);
         int alpha = (int) (255 * BombRunClientConfig.MARKER_OPACITY.value() * pulse);

@@ -47,6 +47,7 @@ jobs:
           enableVsync:false
           soundCategory_master:0.0
           narrator:0
+          pauseOnLostFocus:false
           TXT
           sed -i 's/^ *//' run/1.21.1-neoforge/demo/options.txt
 

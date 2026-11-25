@@ -34,10 +34,12 @@ import net.minecraft.world.level.storage.LevelResource;
 import net.minecraft.world.phys.Vec3;
 import online.farmsteadminecraft.bombrun.BombRun;
 import online.farmsteadminecraft.bombrun.config.BombRunConfig;
+import online.farmsteadminecraft.bombrun.net.BlastsPayload;
 import online.farmsteadminecraft.bombrun.net.Net;
 import online.farmsteadminecraft.bombrun.net.RaidEndPayload;
 import online.farmsteadminecraft.bombrun.net.RaidStartPayload;
 import online.farmsteadminecraft.bombrun.net.RequestStrikePayload;
+import online.farmsteadminecraft.bombrun.net.ServerCapsPayload;
 import online.farmsteadminecraft.bombrun.payload.Bombs;
 import online.farmsteadminecraft.bombrun.perm.Permissions;
 import online.farmsteadminecraft.bombrun.registry.BombRunContent;
@@ -46,6 +48,7 @@ import online.farmsteadminecraft.bombrun.strike.FlightPlan;
 import online.farmsteadminecraft.bombrun.strike.Pattern;
 import online.farmsteadminecraft.bombrun.strike.RaidPlanner;
 import online.farmsteadminecraft.bombrun.strike.StrikeOrder;
+import online.farmsteadminecraft.bombrun.strike.StrikePower;
 import online.farmsteadminecraft.bombrun.strike.StrikeRequest;
 import online.farmsteadminecraft.bombrun.strike.StrikeValidator;
 import online.farmsteadminecraft.bombrun.undo.RaidSnapshot;
@@ -124,8 +127,9 @@ public final class RaidManager {
     public void request(ServerPlayer player, RequestStrikePayload p) {
         ServerLevel level = player.serverLevel();
         double radius = p.radius();
-        int planes = Math.max(1, p.planes());
-        int bombsCount = BombRunConfig.bombsFor(Math.max(1, Math.min(radius, BombRunConfig.RADIUS_MAX.value())));
+        StrikePower power = BombRunConfig.power(p.power());
+        int planes = power.planes(BombRunConfig.MAX_PLANES.value());
+        int bombsCount = power.bombs(Math.max(1, Math.min(radius, BombRunConfig.RADIUS_MAX.value())), BombRunConfig.MAX_BOMBS.value());
         Vec3 target = new Vec3(p.x(), p.y(), p.z());
         long now = level.getGameTime();
         Long last = lastStrike.get(player.getUUID());
@@ -217,7 +221,7 @@ public final class RaidManager {
     /** Before the level ticks its entities. */
     public void levelTick(ServerLevel level) {
         Bombs levelBombs = bombs(level);
-        levelBombs.preTick();
+        levelBombs.preTick(lastTickMs());
         boolean changed = false;
         for (Iterator<Raid> it = raids.values().iterator(); it.hasNext(); ) {
             Raid raid = it.next();
@@ -253,6 +257,28 @@ public final class RaidManager {
                 it.remove();
             }
         }
+    }
+
+    /** After the level ticked its entities: tell players in effect range where bombs blew up this tick. */
+    public void levelTickEnd(ServerLevel level) {
+        Bombs b = bombs.get(level.dimension());
+        if (b == null) return;
+        float[] blasts = b.blastsPacket();
+        if (blasts == null) return;
+        double reach = BombRunConfig.EFFECT_DISTANCE.value();
+        double cx = blasts[0], cz = blasts[2];
+        BlastsPayload payload = new BlastsPayload(blasts);
+        for (ServerPlayer p : level.players()) {
+            double dx = p.getX() - cx, dz = p.getZ() - cz;
+            if (dx * dx + dz * dz <= reach * reach) Net.get().toPlayer(p, payload);
+        }
+    }
+
+    /** How long the server's previous tick took, ms: what the explosion budget adapts to. */
+    private double lastTickMs() {
+        long[] times = server.getTickTimesNanos();
+        int i = Math.floorMod(server.getTickCount() - 1, times.length);
+        return times[i] / 1_000_000.0;
     }
 
     private void prepare(ServerLevel level, Raid raid) {
@@ -291,8 +317,30 @@ public final class RaidManager {
         if (p != null) p.sendSystemMessage(message);
     }
 
-    /** A player joined or changed dimension: send them the raids flying there. */
+    /** The server's limits and power levels for the remote. */
+    public static ServerCapsPayload caps() {
+        List<StrikePower> powers = BombRunConfig.powers();
+        int n = Math.min(ServerCapsPayload.MAX_LEVELS, powers.size());
+        int[] planes = new int[n];
+        float[] spacing = new float[n];
+        for (int i = 0; i < n; i++) {
+            planes[i] = powers.get(i).planes(BombRunConfig.MAX_PLANES.value());
+            spacing[i] = (float) powers.get(i).spacing();
+        }
+        return new ServerCapsPayload(BombRunConfig.MAX_RANGE.value(), BombRunConfig.RADIUS_MIN.value(),
+            Math.max(BombRunConfig.RADIUS_MIN.value(), BombRunConfig.RADIUS_MAX.value()), BombRunConfig.MAX_PLANES.value(),
+            BombRunConfig.MAX_BOMBS.value(), Math.min(n, BombRunConfig.defaultPower()), planes, spacing);
+    }
+
+    /** The config was reloaded: every player's remote gets the new limits. */
+    public void syncCapsToAll() {
+        ServerCapsPayload caps = caps();
+        for (ServerPlayer p : server.getPlayerList().getPlayers()) Net.get().toPlayer(p, caps);
+    }
+
+    /** A player joined or changed dimension: send them the limits and the raids flying there. */
     public void syncTo(ServerPlayer player) {
+        Net.get().toPlayer(player, caps());
         for (Raid raid : raids.values()) {
             if (raid.phase == Raid.Phase.FLYING && raid.dimension == player.level().dimension()) {
                 Net.get().toPlayer(player, new RaidStartPayload(raid.id, raid.startTick, raid.planBytes));
@@ -446,6 +494,8 @@ public final class RaidManager {
             Bombs b = e.getValue();
             lines.add(Component.translatable("farmstead_bombrun.stats.level", e.getKey().location().toString(), b.budget().live(),
                 b.budget().explosions(), b.budget().peakPerTick(), b.budget().delayedExplosions(), b.budget().deferredDrops()));
+            lines.add(Component.translatable("farmstead_bombrun.stats.budget", b.budget().allowance(BombRunConfig.MAX_PER_TICK.value()),
+                String.format(java.util.Locale.ROOT, "%.1f", b.budget().lastTickMs()), BombRunConfig.TARGET_TICK_MS.value()));
         }
         return lines;
     }

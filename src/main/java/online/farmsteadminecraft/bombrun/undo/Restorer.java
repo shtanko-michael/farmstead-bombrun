@@ -20,6 +20,7 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.levelgen.structure.BoundingBox;
 import net.minecraft.world.phys.AABB;
 import online.farmsteadminecraft.bombrun.payload.Bombs;
 
@@ -29,7 +30,13 @@ import online.farmsteadminecraft.bombrun.payload.Bombs;
  * leftover bombs in the zone are removed.
  */
 public final class Restorer {
-    private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_SUPPRESS_DROPS;
+    /**
+     * No neighbour updates, no drops, and "moved by piston" so neither the old block's {@code onRemove} nor the new
+     * one's {@code onPlace} runs: sand that hung over a cave before the raid hangs there again instead of falling,
+     * and restored water does not start flowing.
+     */
+    private static final int FLAGS = Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE | Block.UPDATE_SUPPRESS_DROPS
+        | Block.UPDATE_MOVE_BY_PISTON;
 
     public final int raidId;
     private final ServerLevel level;
@@ -75,6 +82,7 @@ public final class Restorer {
     /** Restores about {@code budget} blocks; true when all are back and the zone is cleaned up. */
     public boolean step(int budget) {
         if (finished) return true;
+        clearTicks();
         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
         int done = 0;
         while (column < size * size && done < budget) {
@@ -108,7 +116,25 @@ public final class Restorer {
         return finished;
     }
 
+    /**
+     * Water in the crater and sand over it keep queuing ticks while the restore runs; one of them firing after its
+     * block is back would let restored sand fall again. Cleared before every slice and once at the end.
+     */
+    private void clearTicks() {
+        int lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;
+        for (int c = 0; c < yMin.length; c++) {
+            if (yMax[c] < yMin[c]) continue;
+            lo = Math.min(lo, yMin[c]);
+            hi = Math.max(hi, yMax[c]);
+        }
+        if (lo > hi) return;
+        BoundingBox area = new BoundingBox(minX - 1, lo - 1, minZ - 1, minX + size, hi + 1, minZ + size);
+        level.getBlockTicks().clearArea(area);
+        level.getFluidTicks().clearArea(area);
+    }
+
     private void cleanUp() {
+        clearTicks();
         int lo = Integer.MAX_VALUE, hi = Integer.MIN_VALUE;
         for (int c = 0; c < yMin.length; c++) {
             if (yMax[c] < yMin[c]) continue;

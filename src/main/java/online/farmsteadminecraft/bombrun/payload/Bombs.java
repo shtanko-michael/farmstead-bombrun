@@ -32,6 +32,8 @@ public final class Bombs {
     private final ExplosionBudget budget = new ExplosionBudget();
     private final Set<PrimedTnt> tracked = Collections.newSetFromMap(new IdentityHashMap<>());
     private final List<PrimedTnt> order = new ArrayList<>();
+    /** Where bombs blew up this tick, {x, y, z, reach²}: items popping out near them are dropped (explosions.dropItems). */
+    private final List<double[]> blasts = new ArrayList<>();
 
     public ExplosionBudget budget() {
         return budget;
@@ -69,9 +71,12 @@ public final class Bombs {
      * Runs before the level ticks its entities: impact bombs that touched something get fuse 1 (they explode in
      * this tick's entity pass), and bombs about to explode over the per-tick limit wait a tick.
      */
-    public void preTick() {
+    public void preTick(double lastTickMs) {
         budget.newTick();
-        int maxPerTick = BombRunConfig.MAX_PER_TICK.value();
+        blasts.clear();
+        int max = BombRunConfig.MAX_PER_TICK.value();
+        if (!order.isEmpty()) budget.adapt(lastTickMs, BombRunConfig.TARGET_TICK_MS.value(), BombRunConfig.MIN_PER_TICK.value(), max);
+        int maxPerTick = budget.allowance(max);
         for (int i = 0; i < order.size(); i++) {
             PrimedTnt tnt = order.get(i);
             if (tnt.isRemoved()) {
@@ -93,9 +98,40 @@ public final class Bombs {
         }
     }
 
+    /** A bomb exploded at {@code (x, y, z)} with this power: remember it until the end of the tick. */
+    public void blast(double x, double y, double z, float power) {
+        double reach = power * 2 + 2;
+        blasts.add(new double[] {x, y, z, reach * reach});
+    }
+
+    /** This tick's blasts as {@code x, y, z, power} floats for {@code BlastsPayload}, or null if none. */
+    public float[] blastsPacket() {
+        if (blasts.isEmpty()) return null;
+        int n = Math.min(blasts.size(), 2048);
+        float[] out = new float[n * 4];
+        for (int i = 0; i < n; i++) {
+            double[] b = blasts.get(i);
+            out[i * 4] = (float) b[0];
+            out[i * 4 + 1] = (float) b[1];
+            out[i * 4 + 2] = (float) b[2];
+            out[i * 4 + 3] = (float) ((Math.sqrt(b[3]) - 2) / 2);
+        }
+        return out;
+    }
+
+    /** True if {@code (x, y, z)} is within reach of a bomb that blew up this tick. */
+    public boolean nearBlast(double x, double y, double z) {
+        for (double[] b : blasts) {
+            double dx = x - b[0], dy = y - b[1], dz = z - b[2];
+            if (dx * dx + dy * dy + dz * dz <= b[3]) return true;
+        }
+        return false;
+    }
+
     public void clear() {
         tracked.clear();
         order.clear();
+        blasts.clear();
         budget.reset();
     }
 }

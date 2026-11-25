@@ -28,6 +28,7 @@ import online.farmsteadminecraft.bombrun.strike.Formation;
 import online.farmsteadminecraft.bombrun.strike.PayloadKind;
 import online.farmsteadminecraft.bombrun.strike.Pattern;
 import online.farmsteadminecraft.bombrun.strike.StrikeOrder;
+import online.farmsteadminecraft.bombrun.strike.StrikePower;
 import online.farmsteadminecraft.bombrun.strike.StrikeRequest;
 import online.farmsteadminecraft.bombrun.strike.StrikeValidator;
 
@@ -37,9 +38,11 @@ import online.farmsteadminecraft.bombrun.strike.StrikeValidator;
  *
  * <pre>
  * /bombrun strike &lt;pos&gt; [radius] [planes] [bombs] [pattern] [payload] [formation] [heading] [altitude]
+ * /bombrun strike &lt;pos&gt; &lt;radius&gt; power &lt;level&gt; [pattern] [payload]
  * </pre>
- * Arguments left out take the server's defaults; {@code bombs} defaults to what the remote would drop on that
- * circle, {@code heading} to the direction the caller faces.
+ * Arguments left out take the server's defaults; {@code planes} and {@code bombs} default to the default strike
+ * power on that circle, {@code heading} to the direction the caller faces. {@code power} picks planes and bombs the
+ * way the remote does.
  */
 public final class BombRunCommand {
     private static final List<String> PATTERNS = Arrays.stream(Pattern.values()).map(p -> p.name().toLowerCase()).toList();
@@ -77,6 +80,11 @@ public final class BombRunCommand {
             if (next != null) arg.then(next);
             next = arg;
         }
+        // radius → power <level> [pattern] [payload]: planes and bombs from a power level, like the remote
+        next.then(Commands.literal("power").then(Commands.argument("level", IntegerArgumentType.integer(1, 16))
+            .executes(BombRunCommand::strike)
+            .then(argument("pattern").executes(BombRunCommand::strike)
+                .then(argument("payload").executes(BombRunCommand::strike)))));
         return Commands.argument("pos", Vec3Argument.vec3()).executes(BombRunCommand::strike).then(next);
     }
 
@@ -112,8 +120,9 @@ public final class BombRunCommand {
         ServerLevel level = src.getLevel();
         Vec3 pos = Vec3Argument.getVec3(c, "pos");
         double radius = opt(c, "radius", Double.class, 16.0);
-        int planes = opt(c, "planes", Integer.class, BombRunConfig.PLANES.value());
-        int bombs = opt(c, "bombs", Integer.class, BombRunConfig.bombsFor(radius));
+        StrikePower power = BombRunConfig.power(opt(c, "level", Integer.class, BombRunConfig.defaultPower()));
+        int planes = opt(c, "planes", Integer.class, power.planes(BombRunConfig.MAX_PLANES.value()));
+        int bombs = opt(c, "bombs", Integer.class, power.bombs(radius, BombRunConfig.MAX_BOMBS.value()));
         Pattern pattern = parse(src, opt(c, "pattern", String.class, null), Pattern::byName, BombRunConfig.PATTERN.get(), PATTERNS);
         PayloadKind payload = parse(src, opt(c, "payload", String.class, null), PayloadKind::byName, BombRunConfig.PAYLOAD.get(), PAYLOADS);
         Formation formation = parse(src, opt(c, "formation", String.class, null), Formation::byName, BombRunConfig.FORMATION.get(), FORMATIONS);
@@ -209,6 +218,8 @@ public final class BombRunCommand {
 
     private static int reload(CommandSourceStack src) {
         List<String> problems = BombRunConfig.load();
+        RaidManager m = RaidManager.get();
+        if (m != null) m.syncCapsToAll();
         if (problems.isEmpty()) {
             src.sendSuccess(() -> Component.translatable("farmstead_bombrun.reload.done"), true);
         } else {

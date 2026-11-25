@@ -6,6 +6,8 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.entity.item.ItemEntity;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
@@ -68,16 +70,33 @@ public class BombRunNeoForge {
             RaidManager m = RaidManager.get();
             if (m != null && e.getLevel() instanceof ServerLevel level) m.levelTick(level);
         });
+        NeoForge.EVENT_BUS.addListener((LevelTickEvent.Post e) -> {
+            RaidManager m = RaidManager.get();
+            if (m != null && e.getLevel() instanceof ServerLevel level) m.levelTickEnd(level);
+        });
         NeoForge.EVENT_BUS.addListener((EntityJoinLevelEvent e) -> {
             RaidManager m = RaidManager.get();
-            if (m != null && e.getLevel() instanceof ServerLevel level) m.entityJoined(e.getEntity(), level);
+            if (m == null || !(e.getLevel() instanceof ServerLevel level)) return;
+            // explosions.dropItems = false: what a bomb knocks loose does not pop out as items
+            if (e.getEntity() instanceof ItemEntity item && !e.loadedFromDisk() && !BombRunConfig.DROP_ITEMS.on()
+                && m.bombs(level).nearBlast(item.getX(), item.getY(), item.getZ())) {
+                e.setCanceled(true);
+                return;
+            }
+            m.entityJoined(e.getEntity(), level);
         });
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedInEvent e) -> sync(e.getEntity()));
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerChangedDimensionEvent e) -> sync(e.getEntity()));
         NeoForge.EVENT_BUS.addListener((ExplosionEvent.Detonate e) -> {
+            if (!Bombs.isBomb(e.getExplosion().getDirectSourceEntity())) return;
             // explosions.breakBlocks = false: the bombs hurt but leave every block standing
-            if (!BombRunConfig.BREAK_BLOCKS.on() && Bombs.isBomb(e.getExplosion().getDirectSourceEntity())) {
-                e.getAffectedBlocks().clear();
+            if (!BombRunConfig.BREAK_BLOCKS.on()) e.getAffectedBlocks().clear();
+            // falling bombs keep their course, and the blast skips their line-of-sight checks
+            if (BombRunConfig.BOMBS_IGNORE_BLASTS.on()) e.getAffectedEntities().removeIf(Bombs::isBomb);
+            RaidManager m = RaidManager.get();
+            if (m != null && e.getLevel() instanceof ServerLevel level) {
+                Vec3 c = e.getExplosion().center();
+                m.bombs(level).blast(c.x, c.y, c.z, e.getExplosion().radius());
             }
         });
 
