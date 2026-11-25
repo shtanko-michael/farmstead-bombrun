@@ -14,3 +14,5 @@ All notable changes to Bomb Run. Versions follow [Semantic Versioning](https://s
 - Blasts seen and heard from up to 512 blocks: glowing fireball, flames, embers, smoke columns, a boom delayed by
   distance and camera shake. Own engine, whistle, siren and remote sounds.
 - Undo puts back sand over caves and water exactly as it was.
+- Textured fire: each blast is a cluster of animated flame puffs (white-hot core → orange flame → embers → smoke).
+- Contrails: two white trails behind every plane that widen, sink and fade (`render.contrails`, `render.contrailSeconds`).

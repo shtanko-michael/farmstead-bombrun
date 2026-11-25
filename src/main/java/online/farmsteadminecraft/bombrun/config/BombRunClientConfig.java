@@ -32,6 +32,10 @@ public final class BombRunClientConfig {
 
     public static final DoubleValue PLANE_SCALE = FILE.number("render", "planeScale", 2.0, 0.5, 8.0)
         .comment("Size of the planes; 1 is a 3-block fuselage.");
+    public static final BoolValue CONTRAILS = FILE.bool("render", "contrails", true)
+        .comment("White trails in the sky behind the planes.");
+    public static final DoubleValue CONTRAIL_SECONDS = FILE.number("render", "contrailSeconds", 8.0, 1.0, 30.0)
+        .comment("How long a trail hangs in the sky, seconds.");
     public static final IntValue RENDER_DISTANCE = FILE.integer("render", "planeDistance", 512, 64, 4096)
         .comment("Planes further than this from the camera are not drawn, blocks.");
 

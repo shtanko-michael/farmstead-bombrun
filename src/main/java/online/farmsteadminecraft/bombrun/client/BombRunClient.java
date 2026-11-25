@@ -29,6 +29,7 @@ public final class BombRunClient {
 
     /** Called after entities are drawn, with an identity pose and the camera-rotated model-view on the GPU. */
     public static void renderWorld(Matrix4f view, Vec3 camera, float partial) {
+        online.farmsteadminecraft.bombrun.client.fx.Contrails.render(view, camera, partial);
         PlaneRenderer.render(view, camera, partial);
         online.farmsteadminecraft.bombrun.client.fx.Fireballs.render(view, camera, partial);
         TargetMarker.render(view, camera, partial);

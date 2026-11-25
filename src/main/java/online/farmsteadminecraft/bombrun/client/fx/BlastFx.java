@@ -52,7 +52,7 @@ public final class BlastFx {
             boolean vanillaShown = mc.player.distanceToSqr(x, y, z) < VANILLA_RANGE * VANILLA_RANGE;
             shake += (float) (power * 0.35 / (1 + d / 20));
             if (i % stride == 0) {
-                Fireballs.add(x, y + power * 0.3, z, power * 0.9f, level.getGameTime(), RANDOM.nextFloat() * 6.28f);
+                Fireballs.add(x, y + power * 0.3, z, power * 0.9f, level.getGameTime(), RANDOM.nextLong());
                 for (int k = 0; k < 10; k++) {
                     double vx = RANDOM.nextGaussian() * 0.25, vy = 0.15 + RANDOM.nextDouble() * 0.35, vz = RANDOM.nextGaussian() * 0.25;
                     level.addAlwaysVisibleParticle(k % 3 == 0 ? ParticleTypes.LARGE_SMOKE : ParticleTypes.FLAME, true, x, y + 0.5, z, vx, vy, vz);
