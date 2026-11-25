@@ -61,6 +61,9 @@ public final class BombRunConfig {
         .comment("Flight height above the target, blocks.");
     public static final DoubleValue SPEED = FILE.number("strike", "planeSpeed", 1.5, 0.2, 8.0)
         .comment("Plane speed, blocks per tick (1.5 = 30 blocks a second).");
+    public static final IntValue APPROACH = FILE.integer("strike", "approachDistance", 520, 64, 4096)
+        .comment("How far from the target circle the planes appear and disappear, blocks. Further than the planes' render"
+            + " distance (client render.planeDistance, 512) they fly in from beyond sight instead of popping up in the sky.");
     public static final IntValue FUSE = FILE.integer("strike", "fuseTicks", 80, 1, 400)
         .comment("Fuse of fuse-payload bombs, ticks (vanilla TNT: 80).");
 

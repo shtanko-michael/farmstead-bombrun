@@ -188,7 +188,7 @@ public final class RaidManager {
         double altitude = Math.min(clear, level.getMaxBuildHeight() + 64 - y);
         return new StrikeOrder(x, y, z, radius, heading, planes, bombsCount, pattern, BombRunConfig.FORMATION.get(),
             BombRunConfig.PAYLOAD.get(), Math.max(8, altitude), BombRunConfig.SPEED.value(),
-            BombRunConfig.COUNTDOWN.value() * 20, 96, level.getRandom().nextLong());
+            BombRunConfig.COUNTDOWN.value() * 20, BombRunConfig.APPROACH.value(), level.getRandom().nextLong());
     }
 
     /** Plans and starts a raid; it takes off once its undo snapshot is taken. */

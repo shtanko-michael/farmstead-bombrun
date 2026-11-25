@@ -18,4 +18,6 @@ All notable changes to Bomb Run. Versions follow [Semantic Versioning](https://s
 - A raid ends only when its bombs have gone off (at most a minute after the planes left; leftovers are removed),
   and a bomb from a finished raid never comes back with its chunk — before, bombs lying in unloaded chunks went off
   during `/bombrun undo` and wrecked the restored area.
+- Planes appear and leave `strike.approachDistance` (520) blocks from the target, beyond their render distance:
+  they fly in from the horizon instead of popping up in the sky.
 - Contrails: two white trails behind every plane that widen, sink and fade (`render.contrails`, `render.contrailSeconds`).
