@@ -83,7 +83,7 @@ public class BombRunNeoForge {
                 e.setCanceled(true);
                 return;
             }
-            m.entityJoined(e.getEntity(), level);
+            if (m.entityJoined(e.getEntity(), level)) e.setCanceled(true);
         });
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerLoggedInEvent e) -> sync(e.getEntity()));
         NeoForge.EVENT_BUS.addListener((PlayerEvent.PlayerChangedDimensionEvent e) -> sync(e.getEntity()));

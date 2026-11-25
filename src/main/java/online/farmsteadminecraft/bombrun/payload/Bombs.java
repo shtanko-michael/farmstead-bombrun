@@ -32,6 +32,8 @@ public final class Bombs {
     private final ExplosionBudget budget = new ExplosionBudget();
     private final Set<PrimedTnt> tracked = Collections.newSetFromMap(new IdentityHashMap<>());
     private final List<PrimedTnt> order = new ArrayList<>();
+    /** Live bombs per raid id: a raid ends only when its bombs are gone. */
+    private final java.util.Map<Integer, Integer> perRaid = new java.util.HashMap<>();
     /** Where bombs blew up this tick, {x, y, z, reach²}: items popping out near them are dropped (explosions.dropItems). */
     private final List<double[]> blasts = new ArrayList<>();
 
@@ -48,7 +50,39 @@ public final class Bombs {
         if (tracked.add(tnt)) {
             order.add(tnt);
             budget.bombAdded();
+            perRaid.merge(raidOf(tnt), 1, Integer::sum);
         }
+    }
+
+    /** The raid that dropped this bomb, from its {@code farmstead_bombrun.raid.<id>} tag; -1 if it has none. */
+    public static int raidOf(Entity e) {
+        for (String t : e.getTags()) {
+            if (t.startsWith(TAG_RAID)) {
+                try {
+                    return Integer.parseInt(t.substring(TAG_RAID.length()));
+                } catch (NumberFormatException ignored) {
+                    return -1;
+                }
+            }
+        }
+        return -1;
+    }
+
+    /** Bombs of raid {@code id} alive in this level. */
+    public int liveFor(int id) {
+        return perRaid.getOrDefault(id, 0);
+    }
+
+    /** Removes every live bomb of raid {@code id} (the raid ended or was cancelled with some still on the ground). */
+    public int discardRaid(int id) {
+        int n = 0;
+        for (PrimedTnt tnt : order) {
+            if (!tnt.isRemoved() && raidOf(tnt) == id) {
+                tnt.discard();
+                n++;
+            }
+        }
+        return n;
     }
 
     public boolean canDrop() {
@@ -84,6 +118,7 @@ public final class Bombs {
                 order.set(i, order.get(order.size() - 1));
                 order.remove(order.size() - 1);
                 budget.bombGone();
+                perRaid.computeIfPresent(raidOf(tnt), (k, v) -> v > 1 ? v - 1 : null);
                 i--;
                 continue;
             }
@@ -132,6 +167,7 @@ public final class Bombs {
         tracked.clear();
         order.clear();
         blasts.clear();
+        perRaid.clear();
         budget.reset();
     }
 }
