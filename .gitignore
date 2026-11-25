@@ -1,0 +1,43 @@
+# Gradle
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+build_number.txt
+
+# Run directories
+run/
+runs/
+**/run/
+logs/
+crash-reports/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+bin/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated / scratch
+.stonecutter/cache/
+tmp/
+*.log
+
+# Stonecutter / Loom
+run/
+versions/*/build/
+versions/*/.gradle/
+
+# Python
+__pycache__/
+*.pyc

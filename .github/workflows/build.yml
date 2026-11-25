@@ -1,0 +1,69 @@
+name: Build
+
+# Every push and pull request: the mod builds and the unit tests pass.
+# The jar is kept as a workflow artifact for a week, handy for testing a branch.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      # Gradle itself runs on 25 (Stonecutter 0.10); 21 is the toolchain of the 1.21.1 target.
+      # The last version listed becomes JAVA_HOME.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            21
+            25
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Language files match
+        run: |
+          python3 - <<'PY'
+          import json, glob, sys
+          base = 'src/main/resources/assets/farmstead_bombrun/lang/'
+          en = set(json.load(open(base + 'en_us.json')))
+          bad = False
+          for p in glob.glob(base + '*.json'):
+              keys = set(json.load(open(p)))
+              if keys != en:
+                  print(p, 'missing', sorted(en - keys), 'extra', sorted(keys - en)); bad = True
+          sys.exit(1 if bad else 0)
+          PY
+
+      # fromEnv: use the JDKs installed above instead of downloading them again.
+      - name: Build and test
+        run: |
+          chmod +x gradlew
+          ./gradlew build --stacktrace --no-daemon \
+            -Porg.gradle.java.installations.fromEnv=JAVA_HOME_21_X64,JAVA_HOME_25_X64 \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-reports
+          path: versions/*/build/reports/tests/
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jars
+          path: |
+            versions/*/build/libs/*.jar
+            !versions/*/build/libs/*-sources.jar
+          if-no-files-found: error
+          retention-days: 7

@@ -1,0 +1,20 @@
+{
+  "raid.siren": {
+    "subtitle": "subtitles.farmstead_bombrun.raid.siren",
+    "sounds": ["farmstead_bombrun:siren"]
+  },
+  "raid.engine": {
+    "subtitle": "subtitles.farmstead_bombrun.raid.engine",
+    "sounds": ["farmstead_bombrun:engine"]
+  },
+  "raid.whistle": {
+    "subtitle": "subtitles.farmstead_bombrun.raid.whistle",
+    "sounds": ["farmstead_bombrun:whistle"]
+  },
+  "remote.confirm": {
+    "sounds": ["farmstead_bombrun:confirm"]
+  },
+  "remote.deny": {
+    "sounds": ["farmstead_bombrun:deny"]
+  }
+}

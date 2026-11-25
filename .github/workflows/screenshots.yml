@@ -1,0 +1,74 @@
+name: Screenshots
+
+# Starts the client under a virtual display with software OpenGL, lets the demo run call one raid
+# in a fresh world and keeps the screenshots as a workflow artifact. Nothing here can fail a PR.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: |
+            21
+            25
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Virtual display and software OpenGL
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q xvfb libgl1-mesa-dri libglx-mesa0 mesa-utils
+
+      - name: Client options
+        run: |
+          mkdir -p run/1.21.1-neoforge/demo
+          cat > run/1.21.1-neoforge/demo/options.txt <<'TXT'
+          onboardAccessibility:false
+          tutorialStep:none
+          joinedFirstServer:true
+          skipMultiplayerWarning:true
+          renderDistance:8
+          simulationDistance:6
+          graphicsMode:1
+          maxFps:30
+          enableVsync:false
+          soundCategory_master:0.0
+          narrator:0
+          pauseOnLostFocus:false
+          TXT
+          sed -i 's/^ *//' run/1.21.1-neoforge/demo/options.txt
+
+      - name: Run the demo
+        env:
+          LIBGL_ALWAYS_SOFTWARE: "1"
+          GALLIUM_DRIVER: llvmpipe
+          MESA_GL_VERSION_OVERRIDE: "4.5"
+        run: |
+          chmod +x gradlew
+          xvfb-run -a -s "-screen 0 1280x720x24" timeout 40m ./gradlew runDemo --no-daemon \
+            -Porg.gradle.java.installations.fromEnv=JAVA_HOME_21_X64,JAVA_HOME_25_X64 \
+            -Dorg.gradle.jvmargs="-Xmx3g" 2>&1 | tee demo.log | grep -E "\[demo\]|ERROR|Exception|BUILD" || true
+          ls -la run/1.21.1-neoforge/demo/screenshots || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: |
+            run/1.21.1-neoforge/demo/screenshots/
+            run/1.21.1-neoforge/demo/logs/latest.log
+            demo.log
+          retention-days: 14
